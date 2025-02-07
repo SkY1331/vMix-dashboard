@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <title>vMix Multiview</title>
+    <style>
+        body {
+            margin: 0;
+            background: transparent !important;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .grid-container {
+            display: grid;
+            width: 100%;
+            height: 100%;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 0px;
+            background: transparent !important;
+        }
+
+        .entry {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            position: relative;
+            border: 4px solid gray;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="grid-container" id="vmixOverlay"></div>
+
+    <script>
+        // 🔹 Fonction pour récupérer les paramètres de l'URL
+        function getQueryParam(param) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(param);
+        }
+
+        // 🔹 Récupérer la valeur du paramètre "start" (ex: ?start=3)
+        const startInput = getQueryParam("start") || "1"; // Valeur par défaut = 1
+
+        const ws = new WebSocket("ws://localhost:8081");
+
+        ws.onmessage = function (event) {
+            const parser = new DOMParser();
+            const xml = parser.parseFromString(event.data, "text/xml");
+
+            const overlay = document.getElementById("vmixOverlay");
+            overlay.innerHTML = "";
+
+            // Récupération des entrées Program & Preview
+            const previewInput = xml.getElementsByTagName("preview")[0]?.textContent;
+            const activeInput = xml.getElementsByTagName("active")[0]?.textContent;
+
+            const inputs = xml.getElementsByTagName("input");
+            let inputIndex = 0;
+            let startIndex = -1;
+
+            // 🔹 Trouver l'index de l'entrée correspondant au "start"
+            for (let i = 0; i < inputs.length; i++) {
+                if (inputs[i].getAttribute("number") === startInput) {
+                    startIndex = i;
+                    break;
+                }
+            }
+
+            // 🔹 Organiser les entrées en commençant par startIndex
+            for (let i = 0; i < inputs.length; i++) {
+                let input = inputs[(startIndex + i) % inputs.length]; // Boucle circulaire
+
+                if (inputIndex >= 4) break; // On affiche seulement 4 inputs
+
+                const inputNumber = input.getAttribute("number"); // Numéro de l'entrée
+                const title = input.getAttribute("title");
+
+                let div = document.createElement("div");
+                div.classList.add("entry");
+
+                let titleDiv = document.createElement("div");
+                titleDiv.classList.add("entry-title");
+                titleDiv.innerText = title;
+
+                // Vérification de l'état de l'entrée
+                if (inputNumber === activeInput) div.classList.add("active");
+                if (inputNumber === previewInput) div.classList.add("preview");
+
+                div.appendChild(titleDiv);
+                overlay.appendChild(div);
+                inputIndex++;
+            }
+        };
+    </script>
+</body>
+
+</html>

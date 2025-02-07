@@ -1,0 +1,152 @@
+/* Index Style */
+
+.menu-container {
+  text-align: center;
+  width: 100%;
+}
+
+h1 {
+  margin-bottom: 20px;
+}
+
+.menu {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.menu li {
+  margin: 10px 0;
+  width: 400px;
+  display: flex;
+}
+
+.menu a,
+.menu button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  padding: 16px;
+  text-decoration: none;
+  color: white;
+  background: #1E88E5;
+  border-radius: 5px;
+  transition: background 0.3s;
+  font-size: 20px;
+  border: none;
+  cursor: pointer;
+}
+
+.menu a:hover,
+.menu button:hover {
+  background: #1565C0;
+}
+
+
+.error-message {
+  color: red;
+  font-size: 18px;
+  font-weight: bold;
+  margin-top: 20px;
+  display: none;
+  animation: fadeIn 1s ease-in-out;
+}
+
+
+.select-container {
+  margin-top: 20px;
+}
+
+select {
+  width: 200px;
+  padding: 10px;
+  font-size: 18px;
+  margin-right: 10px;
+}
+
+
+/* Multiview Style */
+
+.entry.active {
+  border-color: red;
+}
+
+.entry.preview {
+  border-color: #00ff0f;
+}
+
+.entry-title {
+  font-family: 'Calibri', sans-serif;
+  position: absolute;
+  bottom: 12px;
+  background: rgba(0, 0, 0, 0.5);
+  color: white;
+  padding: 5px 10px;
+  font-size: 14px;
+  border-radius: 8px;
+}
+
+/* Timer Style */
+
+.clock {
+  font-size: 100px;
+  font-weight: bold;
+  margin-top: 20px;
+}
+
+.timer-container {
+  width: 800px;
+}
+
+.timer-bar {
+  width: 100%;
+  height: 150px;
+  background: gray;
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+}
+
+.timer-progress {
+  height: 100%;
+  width: 100%;
+  background: #00ff0f;
+  transition: width 0.5s linear, background 0.5s;
+}
+
+.timer-text {
+  position: absolute;
+  width: 100%;
+  text-align: center;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 140px;
+  font-weight: bold;
+}
+
+
+/* VU-Mètre Vertical */
+.vu-meter-container {
+  width: 5px;
+  height: 90%;
+  background: gray;
+  border-radius: 0px;
+  overflow: hidden;
+  position: absolute;
+  right: 15px;
+  opacity: 0.5;
+  top: 15px;
+  bottom: 0px;
+}
+
+.vu-meter {
+  width: 100%;
+  height: 0%;
+  background: #00ff0f;
+  position: absolute;
+  bottom: 0;
+  transition: height 1s;
+}

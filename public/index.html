@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <title>vMix Dashboard</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #121212;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+            text-align: center;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="menu-container">
+        <h1>vMix Dashboard</h1>
+
+        <!-- Input Selection -->
+        <div class="select-container">
+            <label for="startInput">Select Start Input:</label>
+            <select id="startInput">
+                <!-- Dynamically filled via JavaScript -->
+            </select>
+        </div>
+
+        <!-- Buttons for Multiview Selection -->
+        <ul class="menu">
+            <li><button onclick="redirectToMultiview('multiview-4.html')">Multiview 4 Inputs</button></li>
+            <li><button onclick="redirectToMultiview('multiview-9.html')">Multiview 9 Inputs</button></li>
+            <li><button onclick="redirectToMultiview('multiview-8.html')">Multiview 8 PVW/PGM</button></li>
+            <li><a href="overlay-timer.html">Timer</a></li>
+        </ul>
+    </div>
+
+    <div class="error-message" id="errorMessage">
+        ❌ Error: Unable to connect to vMix. Make sure vMix is running!
+    </div>
+
+    <script>
+        // 🔹 Check vMix connection
+        function checkVmixConnection() {
+            fetch("http://localhost:8088/api")
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error("vMix not detected");
+                    }
+                    return response.text();
+                })
+                .then(() => {
+                    document.getElementById("errorMessage").style.display = "none";
+                })
+                .catch(() => {
+                    document.getElementById("errorMessage").style.display = "block";
+                });
+        }
+
+        // 🔹 Check immediately and every 5 seconds
+        checkVmixConnection();
+        setInterval(checkVmixConnection, 5000);
+
+        // 🔹 Dynamically fill the input selector (1 to 10)
+        const select = document.getElementById("startInput");
+        for (let i = 1; i <= 10; i++) {
+            let option = document.createElement("option");
+            option.value = i;
+            option.textContent = `Input ${i}`;
+            select.appendChild(option);
+        }
+
+        // 🔹 Redirect to Multiview with selected start input
+        function redirectToMultiview(page) {
+            const selectedInput = document.getElementById("startInput").value;
+            window.location.href = `${page}?start=${selectedInput}`;
+        }
+
+    </script>
+</body>
+
+</html>

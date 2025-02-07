@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <title>Overlay Timer</title>
+    <style>
+        body {
+            margin: 0;
+            background: rgba(0, 0, 0, 0);
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            height: 100vh;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="clock" id="clock">--:--</div>
+    <div class="timer-container">
+        <div class="timer-bar">
+            <div class="timer-progress" id="timerProgress"></div>
+            <div class="timer-text" id="timerText">00:00</div>
+        </div>
+    </div>
+
+    <script>
+        function updateClock() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            document.getElementById("clock").textContent = `${hours}:${minutes}:${seconds}`;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        function convertTimeToSeconds(timeString) {
+            const parts = timeString.split(":");
+            if (parts.length === 3) {
+                const hours = parseInt(parts[0]) || 0;
+                const minutes = parseInt(parts[1]) || 0;
+                const seconds = parseInt(parts[2]) || 0;
+                return hours * 3600 + minutes * 60 + seconds;
+            }
+            return 0;
+        }
+
+        let initialDuration = null; // Durée totale du timer au début
+
+        const ws = new WebSocket("ws://localhost:8081");
+
+        ws.onmessage = function (event) {
+            const parser = new DOMParser();
+            const xml = parser.parseFromString(event.data, "text/xml");
+
+            const inputs = xml.getElementsByTagName("input");
+            let timerInput = null;
+            let timerTextElement = null;
+
+            // Chercher l'input "timer" et récupérer le texte
+            for (let input of inputs) {
+                if (input.getAttribute("title").toLowerCase().includes("timer")) {
+                    timerInput = input;
+                    timerTextElement = input.getElementsByTagName("text")[0]; // Récupération du texte
+                    break;
+                }
+            }
+
+            if (timerInput && timerTextElement) {
+                console.log(timerInput);
+                const timeText = timerTextElement.textContent.trim(); // Extraction du texte
+
+                const timeRemaining = convertTimeToSeconds(timeText);
+
+                // Si c'est le premier affichage, on mémorise la durée totale
+                if (initialDuration === null && timeRemaining > 0) {
+                    initialDuration = timeRemaining;
+                    console.log("✅ Durée initiale mémorisée :", initialDuration);
+                }
+
+                if (timeRemaining > 0 && initialDuration) {
+                    const percentLeft = (timeRemaining / initialDuration) * 100; // Calcul du % restant
+
+                    document.getElementById("timerText").textContent = timeText;
+                    document.getElementById("timerProgress").style.width = percentLeft + "%";
+
+                    // Changer la couleur du timer si < 20%
+                    if (percentLeft < 20) {
+                        document.getElementById("timerProgress").style.background = "red";
+                    } else {
+                        document.getElementById("timerProgress").style.background = "#00ff0f";
+                    }
+                } else {
+                    document.getElementById("timerText").textContent = "00:00";
+                    document.getElementById("timerProgress").style.width = "0%";
+                }
+            } else {
+                console.log("❌ Aucun timer trouvé !");
+                document.getElementById("timerText").textContent = "No Timer";
+                document.getElementById("timerProgress").style.width = "0%";
+            }
+        };
+    </script>
+
+</body>
+
+</html>

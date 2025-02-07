@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>vMix Custom Multiview</title>
+  <link rel="stylesheet" href="style.css"> <!-- Lien vers le CSS global -->
+  <style>
+    body {
+      margin: 0;
+      background: transparent !important;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      flex-direction: column;
+    }
+
+    .grid-container {
+      display: grid;
+      width: 100%;
+      height: 100%;
+      grid-template-rows: 50% 50%;
+      gap: 2px;
+      background: transparent !important;
+    }
+
+    .top-container {
+      display: flex;
+      width: 100%;
+      height: 100%;
+    }
+
+    .big-entry-container {
+      flex: 1;
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .big-entry {
+      width: 100%;
+      height: 100%;
+      background: none !important;
+      border: 3px solid gray;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      font-size: 24px;
+      font-weight: bold;
+      color: white;
+    }
+
+    .big-entry-title {
+      position: absolute;
+      top: 10px;
+      background: rgba(0, 0, 0, 0.6);
+      color: white;
+      padding: 5px 10px;
+      font-size: 16px;
+      border-radius: 8px;
+    }
+
+    .bottom-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      grid-template-rows: repeat(2, 1fr);
+      width: 100%;
+      height: 100%;
+    }
+
+    .entry {
+      background: none !important;
+      border: 3px solid gray;
+      transition: border-color 0.3s, box-shadow 0.3s;
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      position: relative;
+    }
+
+    .big-entry.active {
+      border-color: red !important;
+    }
+
+    .big-entry.preview {
+      border-color: #00ff0f !important;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="grid-container">
+    <!-- Grandes fenêtres en haut -->
+    <div class="top-container">
+      <div class="big-entry-container">
+        <div id="bigInput1" class="big-entry">
+          <div class="entry-title">PVW</div>
+        </div>
+      </div>
+      <div class="big-entry-container">
+        <div id="bigInput2" class="big-entry">
+          <div class="entry-title">PGM</div>
+        </div>
+        <div class="vu-meter-container">
+          <div id="vuMeter" class="vu-meter"></div>
+        </div>
+      </div>
+    </div>
+    <!-- 8 petites entrées en bas -->
+    <div class="bottom-grid" id="vmixOverlay"></div>
+  </div>
+
+
+  <script>
+
+    function getQueryParam(param) {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get(param);
+    }
+
+    // 🔹 Récupérer la valeur du paramètre "start" (ex: ?start=3)
+    const startInput = getQueryParam("start") || "1"; // Valeur par défaut = 1
+
+    const ws = new WebSocket("ws://localhost:8081");
+
+    ws.onmessage = function (event) {
+      const parser = new DOMParser();
+      const xml = parser.parseFromString(event.data, "text/xml");
+
+      const overlay = document.getElementById("vmixOverlay");
+      overlay.innerHTML = "";
+
+      // Récupération des entrées Program & Preview
+      const previewInput = xml.getElementsByTagName("preview")[0]?.textContent;
+      const activeInput = xml.getElementsByTagName("active")[0]?.textContent;
+
+      const inputs = xml.getElementsByTagName("input");
+      let inputIndex = 0;
+      let startIndex = -1;
+
+      // 🔹 Trouver l'index de l'entrée correspondant au "start"
+      for (let i = 0; i < inputs.length; i++) {
+        if (inputs[i].getAttribute("number") === startInput) {
+          startIndex = i;
+          break;
+        }
+      }
+
+      // 🔹 Organiser les entrées en commençant par startIndex (boucle circulaire)
+      for (let i = 0; i < inputs.length; i++) {
+        let input = inputs[(startIndex + i) % inputs.length]; // Boucle circulaire
+
+        if (inputIndex >= 8) break; // On affiche seulement 8 entrées
+
+        const inputNumber = input.getAttribute("number");
+        const title = input.getAttribute("title");
+
+        // 🔹 Créer les entrées
+        let div = document.createElement("div");
+        div.classList.add("entry");
+
+        let titleDiv = document.createElement("div");
+        titleDiv.classList.add("entry-title");
+        titleDiv.innerText = title;
+
+        // Vérification de l'état de l'entrée
+        if (inputNumber === activeInput) div.classList.add("active");
+        if (inputNumber === previewInput) div.classList.add("preview");
+
+        div.appendChild(titleDiv);
+        overlay.appendChild(div);
+
+        inputIndex++;
+      }
+
+      // Mise à jour du VU-Mètre Audio Master
+      updateVuMeter(xml);
+    };
+
+    function updateVuMeter(xml) {
+      const masterAudio = xml.querySelector("master");
+      if (masterAudio) {
+        const meterF1 = parseFloat(masterAudio.getAttribute("meterF1")) || 0;
+        const meterF2 = parseFloat(masterAudio.getAttribute("meterF2")) || 0;
+        const volumeLevel = (meterF1 + meterF2) / 2; // Moyenne des deux canaux
+
+        let percentage = 0; // Valeur par défaut
+
+        if (volumeLevel >= 0 && volumeLevel <= 0.2) {
+          // Mapper [0 - 0.2] sur [0 - 50%]
+          percentage = (volumeLevel / 0.2) * 50;
+        } else if (volumeLevel > 0.2 && volumeLevel <= 1) {
+          // Mapper [0.2 - 1] sur [50 - 100%]
+          percentage = 50 + ((volumeLevel - 0.2) / 0.8) * 50;
+        }
+
+        // Appliquer la hauteur du VU-mètre
+        const vuMeter = document.getElementById("vuMeter");
+        vuMeter.style.height = percentage + "%";
+
+        // Changer la couleur du VU-mètre en fonction du niveau
+        if (percentage < 75) {
+          vuMeter.style.background = "#00ff0f"; // Vert
+        } else if (percentage < 90) {
+          vuMeter.style.background = "yellow";
+        } else {
+          vuMeter.style.background = "red"; // Rouge si >75%
+        }
+      }
+    }
+
+  </script>
+
+</body>
+
+</html>
